@@ -1,0 +1,4 @@
+framework:
+    serializer:
+        default_context:
+            datetime_format: 'Y-m-d\TH:i:s.uP' # ISO 8601 + microsecondes
