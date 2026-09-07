@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Dto\DocumentStateDto;
 use App\Dto\PushDto;
 use App\Dto\PullDto;
 use App\Entity\Task;
@@ -11,7 +12,9 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Symfony\Component\PropertyAccess\PropertyAccess;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Uid\Uuid;
 
 #[Route('/api/tasks')]
 class ReplicationController extends AbstractController
@@ -47,54 +50,70 @@ class ReplicationController extends AbstractController
         //     "checkpoint" => null
         // ];
 
+        $ids = array_map(static fn(PushDto $row): Uuid => $row->newDocumentState->id, $changeRows);
+
+        $realMasterStatesById = [];
+        foreach ($taskRepository->findBy(["id" => $ids]) as $task) {
+            $realMasterStatesById[(string) $task->getId()] = $task;
+        }
+
         foreach ($changeRows as $changeRow) {
-            $realMasterState = $taskRepository->find($changeRow->newDocumentState->id);
+            $realMasterState = $realMasterStatesById[(string) $changeRow->newDocumentState->id] ?? null;
 
             if (!$realMasterState) {
-                if ($changeRow->newDocumentState->deleted) continue;
-
-                $task = new Task();
-                $task->setId($changeRow->newDocumentState->id);
-                $task->setName($changeRow->newDocumentState->name);
-                $task->setDate($changeRow->newDocumentState->date);
-                $task->setImage($changeRow->newDocumentState->image);
-
-                $this->em->persist($task);
-
-                // $event["documents"][] = $realMasterState;
-                // $event["checkpoint"] = ['id' => $task->getId(), 'updatedAt' => $task->getUpdatedAt()];
-
+                $this->createTask($changeRow->newDocumentState);
                 continue;
             }
 
             if (
-                !$changeRow->assumedMasterState ||
-                (
-                    $changeRow->assumedMasterState &&
-                    $realMasterState->getName() !== $changeRow->assumedMasterState->name)
+                $this->checkConflict($changeRow->assumedMasterState, $realMasterState)
             ) {
                 $conflicts[] = $realMasterState;
             } else {
-                if ($changeRow->newDocumentState->deleted) {
+                $isDeleted = $changeRow->newDocumentState->deleted;
+
+                if ($isDeleted) {
                     $this->em->remove($realMasterState);
                     continue;
                 }
 
-                $realMasterState->setName($changeRow->newDocumentState->name);
-                $realMasterState->setDate($changeRow->newDocumentState->date);
-                $realMasterState->setImage($changeRow->newDocumentState->image);
-
-                // $event["documents"][] = $realMasterState;
-                // $event["checkpoint"] = ['id' => $realMasterState->getId(), 'updatedAt' => $realMasterState->getUpdatedAt()];
+                $this->updateTask($realMasterState, $changeRow->newDocumentState);
             }
         }
-
-        // if (count($event["documents"]) > 0) {
-        //     //myPullStream$.next(event);
-        // }
 
         $this->em->flush();
 
         return $this->json(['conflicts' => $conflicts], 200, [], ['groups' => ['pull']]);
+    }
+
+    private function createTask(DocumentStateDto $documentState)
+    {
+        if ($documentState->deleted) return;
+
+        $task = new Task();
+        $task->setId($documentState->id);
+        $task->setName($documentState->name);
+        $task->setDate($documentState->date);
+        $task->setImage($documentState->image);
+
+        $this->em->persist($task);
+    }
+
+    private function updateTask(Task $task, DocumentStateDto $documentState)
+    {
+        $task->setName($documentState->name);
+        $task->setDate($documentState->date);
+        $task->setImage($documentState->image);
+    }
+
+    private function checkConflict(?DocumentStateDto $distantState, Task $localState): bool
+    {
+        if (!$distantState->id->equals($localState->getId())) return true;
+        if ($distantState->name !== $localState->getName()) return true;
+        if ($distantState->date?->getTimestamp() !== $localState->getDate()?->getTimestamp()) return true;
+        if ($distantState->image !== $localState->getImage()) return true;
+        if ($distantState->deleted !== $localState->isDeleted()) return true;
+
+        return false;
     }
 }

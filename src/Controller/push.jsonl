@@ -22,4 +22,22 @@
             "deleted": false
         }
     }
+],
+[
+    {
+        "assumedMasterState": {
+            "id": "01a07bf2-59db-765a-9058-10645d2e13e8",
+            "name": "Toto 7 Jéjé et de la part de",
+            "date": null,
+            "image": "file:///storage/emulated/0/Documents/todoApp/photo-1788785903048.jpg",
+            "deleted": false
+        },
+        "newDocumentState": {
+            "id": "01a07bf2-59db-765a-9058-10645d2e13e8",
+            "name": "Toto 7 Jéjé et de la part de",
+            "date": null,
+            "image": "file:///storage/emulated/0/Documents/todoApp/photo-1788785903048.jpg",
+            "deleted": true
+        }
+    }
 ]
