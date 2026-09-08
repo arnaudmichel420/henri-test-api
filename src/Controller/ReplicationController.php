@@ -15,11 +15,12 @@ use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\PropertyAccess\PropertyAccess;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Uid\Uuid;
+use Psr\Log\LoggerInterface;
 
 #[Route('/api/tasks')]
 class ReplicationController extends AbstractController
 {
-    public function __construct(private EntityManagerInterface $em) {}
+    public function __construct(private EntityManagerInterface $em, private LoggerInterface $logger) {}
 
     #[Route('/pull', methods: ['GET'])]
     public function pull(
@@ -40,16 +41,9 @@ class ReplicationController extends AbstractController
         #[MapRequestPayload(type: PushDto::class)] array $changeRows,
         TaskRepository $taskRepository
     ): JsonResponse {
-        // $lastEventId = 0;
+        //todo ajouter une transaction
 
         $conflicts = [];
-
-        // $event = [
-        //     "id" => $lastEventId++,
-        //     "documents" => [],
-        //     "checkpoint" => null
-        // ];
-
         $ids = array_map(static fn(PushDto $row): Uuid => $row->newDocumentState->id, $changeRows);
 
         $realMasterStatesById = [];
@@ -68,6 +62,16 @@ class ReplicationController extends AbstractController
             if (
                 $this->checkConflict($changeRow->assumedMasterState, $realMasterState)
             ) {
+                $this->logger->warning('ReplicationController::push conflict detected', [
+                    'assumedMasterState' => $changeRow->assumedMasterState,
+                    'realMasterState' => [
+                        'id' => (string) $realMasterState->getId(),
+                        'name' => $realMasterState->getName(),
+                        'date' => $realMasterState->getDate()?->format('c'),
+                        'image' => $realMasterState->getImage(),
+                        'deleted' => $realMasterState->isDeleted(),
+                    ],
+                ]);
                 $conflicts[] = $realMasterState;
             } else {
                 $isDeleted = $changeRow->newDocumentState->deleted;

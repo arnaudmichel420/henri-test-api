@@ -20,3 +20,4 @@
 ###< symfony/asset-mapper ###
 cert.p12
 key.pem
+mercure-root-ca.crt
