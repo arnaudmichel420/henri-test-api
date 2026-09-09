@@ -12,7 +12,6 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
-use Symfony\Component\PropertyAccess\PropertyAccess;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Uid\Uuid;
 use Psr\Log\LoggerInterface;
@@ -41,7 +40,7 @@ class ReplicationController extends AbstractController
         #[MapRequestPayload(type: PushDto::class)] array $changeRows,
         TaskRepository $taskRepository
     ): JsonResponse {
-        //todo ajouter une transaction
+        $this->em->getFilters()->disable('soft_delete');
 
         $conflicts = [];
         $ids = array_map(static fn(PushDto $row): Uuid => $row->newDocumentState->id, $changeRows);
@@ -51,41 +50,31 @@ class ReplicationController extends AbstractController
             $realMasterStatesById[(string) $task->getId()] = $task;
         }
 
-        foreach ($changeRows as $changeRow) {
-            $realMasterState = $realMasterStatesById[(string) $changeRow->newDocumentState->id] ?? null;
+        $this->em->wrapInTransaction(function () use ($changeRows, $realMasterStatesById, &$conflicts): void {
+            foreach ($changeRows as $changeRow) {
+                $realMasterState = $realMasterStatesById[(string) $changeRow->newDocumentState->id] ?? null;
 
-            if (!$realMasterState) {
-                $this->createTask($changeRow->newDocumentState);
-                continue;
-            }
-
-            if (
-                $this->checkConflict($changeRow->assumedMasterState, $realMasterState)
-            ) {
-                $this->logger->warning('ReplicationController::push conflict detected', [
-                    'assumedMasterState' => $changeRow->assumedMasterState,
-                    'realMasterState' => [
-                        'id' => (string) $realMasterState->getId(),
-                        'name' => $realMasterState->getName(),
-                        'date' => $realMasterState->getDate()?->format('c'),
-                        'image' => $realMasterState->getImage(),
-                        'deleted' => $realMasterState->isDeleted(),
-                    ],
-                ]);
-                $conflicts[] = $realMasterState;
-            } else {
-                $isDeleted = $changeRow->newDocumentState->deleted;
-
-                if ($isDeleted) {
-                    $this->em->remove($realMasterState);
+                if (!$realMasterState) {
+                    $this->createTask($changeRow->newDocumentState);
                     continue;
                 }
 
-                $this->updateTask($realMasterState, $changeRow->newDocumentState);
-            }
-        }
+                if (
+                    $this->checkConflict($changeRow->assumedMasterState, $realMasterState)
+                ) {
+                    $conflicts[] = $realMasterState;
+                } else {
+                    $isDeleted = $changeRow->newDocumentState->deleted;
 
-        $this->em->flush();
+                    if ($isDeleted) {
+                        $this->em->remove($realMasterState);
+                        continue;
+                    }
+
+                    $this->updateTask($realMasterState, $changeRow->newDocumentState);
+                }
+            }
+        });
 
         return $this->json(['conflicts' => $conflicts], 200, [], ['groups' => ['pull']]);
     }
@@ -109,6 +98,35 @@ class ReplicationController extends AbstractController
         $task->setDate($documentState->date);
         $task->setImage($documentState->image);
     }
+
+    // /**
+    //  * @return array{id: string, name: ?string, date: ?string, image: ?string, deleted: bool}
+    //  */
+    // private function taskToLogArray(Task $task): array
+    // {
+    //     return [
+    //         'id' => (string) $task->getId(),
+    //         'name' => $task->getName(),
+    //         'date' => $task->getDate()?->format('c'),
+    //         'image' => $task->getImage(),
+    //         'deleted' => $task->isDeleted(),
+    //     ];
+    // }
+
+    // /**
+    //  * @return array{id: string, name: ?string, date: mixed, image: ?string, deleted: bool}
+    //  */
+    // private function documentStateToLogArray(?DocumentStateDto $documentState): array
+    // {
+    //     if (!$documentState) return [];
+    //     return [
+    //         'id' => (string) $documentState->id,
+    //         'name' => $documentState->name,
+    //         'date' => $documentState->date,
+    //         'image' => $documentState->image,
+    //         'deleted' => $documentState->deleted,
+    //     ];
+    // }
 
     private function checkConflict(?DocumentStateDto $distantState, Task $localState): bool
     {

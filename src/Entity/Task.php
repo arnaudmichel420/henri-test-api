@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Interface\HasIdAndUpdatedAt;
 use App\Repository\TaskRepository;
 use App\Trait\CreatedAtUpdatedAtEntity;
 use Doctrine\ORM\Mapping as ORM;
@@ -14,7 +15,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
 #[ORM\Entity(repositoryClass: TaskRepository::class)]
 #[ORM\HasLifecycleCallbacks]
 #[Gedmo\SoftDeleteable(fieldName: 'deletedAt')]
-class Task
+class Task implements HasIdAndUpdatedAt
 {
     use SoftDeleteableEntity;
     use CreatedAtUpdatedAtEntity;
