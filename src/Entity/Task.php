@@ -5,6 +5,8 @@ namespace App\Entity;
 use App\Interface\HasIdAndUpdatedAt;
 use App\Repository\TaskRepository;
 use App\Trait\CreatedAtUpdatedAtEntity;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Uid\Uuid;
@@ -33,13 +35,16 @@ class Task implements HasIdAndUpdatedAt
     #[Groups(['pull'])]
     private ?\DateTimeImmutable $date = null;
 
-    #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['pull'])]
-    private ?string $image = null;
+    /**
+     * @var Collection<int, Upload>
+     */
+    #[ORM\OneToMany(targetEntity: Upload::class, mappedBy: 'task', orphanRemoval: true)]
+    private Collection $uploads;
 
     public function __construct()
     {
         $this->id = Uuid::v7();
+        $this->uploads = new ArrayCollection();
     }
 
     public function setId(Uuid $id): static
@@ -78,21 +83,39 @@ class Task implements HasIdAndUpdatedAt
         return $this;
     }
 
-    public function getImage(): ?string
-    {
-        return $this->image;
-    }
-
-    public function setImage(?string $image): static
-    {
-        $this->image = $image;
-
-        return $this;
-    }
-
     #[Groups(['pull'])]
     public function isDeleted(): bool
     {
         return null !== $this->deletedAt;
+    }
+
+    /**
+     * @return Collection<int, Upload>
+     */
+    public function getUploads(): Collection
+    {
+        return $this->uploads;
+    }
+
+    public function addUpload(Upload $upload): static
+    {
+        if (!$this->uploads->contains($upload)) {
+            $this->uploads->add($upload);
+            $upload->setTask($this);
+        }
+
+        return $this;
+    }
+
+    public function removeUpload(Upload $upload): static
+    {
+        if ($this->uploads->removeElement($upload)) {
+            // set the owning side to null (unless already changed)
+            if ($upload->getTask() === $this) {
+                $upload->setTask(null);
+            }
+        }
+
+        return $this;
     }
 }

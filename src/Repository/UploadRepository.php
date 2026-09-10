@@ -2,43 +2,43 @@
 
 namespace App\Repository;
 
-use App\Dto\Task\PullDto;
-use App\Entity\Task;
+use App\Dto\Upload\PullDto;
+use App\Entity\Upload;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
- * @extends ServiceEntityRepository<Task>
+ * @extends ServiceEntityRepository<Upload>
  */
-class TaskRepository extends ServiceEntityRepository
+class UploadRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {
-        parent::__construct($registry, Task::class);
+        parent::__construct($registry, Upload::class);
     }
 
     /**
-     * @return Task[]
+     * @return Upload[]
      */
-    public function pullTask(PullDto $dto): array
+    public function pullUpload(PullDto $dto): array
     {
         $this->getEntityManager()->getFilters()->disable('soft_delete');
 
-        $qb = $this->createQueryBuilder('t');
+        $qb = $this->createQueryBuilder('u');
 
         return $qb->where(
             $qb->expr()->orX(
-                't.updatedAt > :updatedAt',
+                'u.updatedAt > :updatedAt',
                 $qb->expr()->andX(
-                    't.updatedAt = :updatedAt',
-                    't.id > :id'
+                    'u.updatedAt = :updatedAt',
+                    'u.id > :id'
                 )
             )
         )
             ->setParameter('updatedAt', $dto->updatedAt)
             ->setParameter('id', $dto->id)
-            ->addOrderBy('t.updatedAt', 'ASC')
-            ->addOrderBy('t.id', 'ASC')
+            ->addOrderBy('u.updatedAt', 'ASC')
+            ->addOrderBy('u.id', 'ASC')
             ->setMaxResults($dto->limit)
             ->getQuery()
             ->getResult();
