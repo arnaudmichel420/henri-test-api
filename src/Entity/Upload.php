@@ -24,32 +24,31 @@ class Upload implements HasIdAndUpdatedAt
 
     #[ORM\Id]
     #[ORM\Column(type: UuidType::NAME, unique: true)]
-    #[Groups(['pull'])]
+    #[Groups(['pull', 'upload:read'])]
     private ?Uuid $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'uploads')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['pull'])]
     private ?Task $task = null;
 
     #[ORM\Column(length: 512)]
-    #[Groups(['pull'])]
+    #[Groups(['pull', 'upload:read'])]
     private ?string $s3Key = null;
 
     #[ORM\Column(enumType: StatusEnum::class)]
-    #[Groups(['pull'])]
+    #[Groups(['pull', 'upload:read'])]
     private ?StatusEnum $status = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['pull'])]
+    #[Groups(['pull', 'upload:read'])]
     private ?string $mimeType = null;
 
     #[ORM\Column(type: Types::BIGINT, nullable: true)]
-    #[Groups(['pull'])]
+    #[Groups(['pull', 'upload:read'])]
     private ?string $sizeBytes = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['pull'])]
+    #[Groups(['pull', 'upload:read'])]
     private ?string $etag = null;
 
     public function __construct()
@@ -72,6 +71,12 @@ class Upload implements HasIdAndUpdatedAt
     public function getTask(): ?Task
     {
         return $this->task;
+    }
+
+    #[Groups(['pull'])]
+    public function getTaskId(): ?Uuid
+    {
+        return $this->task?->getId();
     }
 
     public function setTask(?Task $task): static
@@ -141,7 +146,7 @@ class Upload implements HasIdAndUpdatedAt
         return $this;
     }
     
-    #[Groups(['pull'])]
+    #[Groups(['pull', 'upload:read'])]
     public function isDeleted(): bool
     {
         return null !== $this->deletedAt;

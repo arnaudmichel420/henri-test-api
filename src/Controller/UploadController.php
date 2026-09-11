@@ -29,13 +29,19 @@ class UploadController extends AbstractController
     #[Route('/api/tasks/{taskId}/uploads', methods: ['GET'])]
     public function list(#[MapEntity(id: 'taskId')] Task $task): JsonResponse
     {
-        return $this->json($task->getUploads());
+        return $this->json($task->getUploads(), 200, [], ['groups' => ['upload:read']]);
+    }
+
+    #[Route('/api/uploads', methods: ['GET'])]
+    public function listAll(UploadRepository $uploadRepository): JsonResponse
+    {
+        return $this->json($uploadRepository->findAll(), 200, [], ['groups' => ['upload:read']]);
     }
 
     #[Route('/api/tasks/{taskId}/uploads/{id}', methods: ['GET'])]
     public function show(Upload $upload): JsonResponse
     {
-        return $this->json($upload);
+        return $this->json($upload, 200, [], ['groups' => ['upload:read']]);
     }
 
     #[Route('/api/tasks/{taskId}/uploads', methods: ['POST'])]
