@@ -24,14 +24,14 @@ services:
     restart: unless-stopped
     environment:
       GODEBUG: "tlsmlkem=0"
-      GLOBAL_OPTIONS: "default_sni 192.168.1.23"
+      GLOBAL_OPTIONS: "default_sni 192.168.1.20"
       # Uncomment the following line to disable HTTPS,
-      SERVER_NAME: 'localhost, 192.168.1.23'
+      SERVER_NAME: "localhost, 192.168.1.20"
       MERCURE_PUBLISHER_JWT_KEY: "${MERCURE_JWT_SECRET}"
       MERCURE_SUBSCRIBER_JWT_KEY: "${MERCURE_JWT_SECRET}"
       # Set the URL of your Symfony project (without trailing slash!) as value of the cors_origins directive
       MERCURE_EXTRA_DIRECTIVES: |
-        cors_origins http://localhost:8100 http://127.0.0.1:8100 https://192.168.1.23:8100 https://192.168.1.23:5050
+        cors_origins http://localhost:8100 http://127.0.0.1:8100 https://192.168.1.20:8100 https://192.168.1.20:5050
     # Comment the following line to disable the development mode
     command: /usr/bin/caddy run --config /etc/caddy/dev.Caddyfile
     healthcheck:

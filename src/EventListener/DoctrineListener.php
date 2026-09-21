@@ -3,6 +3,7 @@
 namespace App\EventListener;
 
 use App\Entity\Task;
+use App\Entity\Upload;
 use App\Service\MercurePublisherService;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\Event\OnFlushEventArgs;
@@ -12,7 +13,7 @@ use Doctrine\ORM\Events;
 #[AsDoctrineListener(event: Events::postFlush)]
 final class DoctrineListener
 {
-    private array $changedTasks = [];
+    private array $changedEntities = [];
 
     public function __construct(private MercurePublisherService $publisher) {}
 
@@ -25,17 +26,17 @@ final class DoctrineListener
         $delete = $uow->getScheduledEntityDeletions();
 
         foreach ([...$insert, ...$update, ...$delete] as $entity) {
-            if ($entity instanceof Task) {
-                $this->changedTasks[] = $entity;
+            if ($entity instanceof Task || $entity instanceof Upload) {
+                $this->changedEntities[] = $entity;
             }
         }
     }
 
     public function postFlush(): void
     {
-        foreach ($this->changedTasks as $task) {
-            $this->publisher->publish($task);
+        foreach ($this->changedEntities as $entity) {
+            $this->publisher->publish($entity);
         }
-        $this->changedTasks = [];
+        $this->changedEntities = [];
     }
 }

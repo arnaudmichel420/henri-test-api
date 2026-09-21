@@ -14,7 +14,7 @@ class S3Controller extends AbstractController
 
     #[Route('/api/uploads/{id}/download-url', methods: ['GET'])]
     public function getDownloadUrl(
-        Upload $upload,
+        #[MapEntity(id: 'id')] Upload $upload,
         S3 $s3
     ): JsonResponse {
         $url = $s3->createGetPresignUrl($upload->getS3Key());
@@ -24,7 +24,7 @@ class S3Controller extends AbstractController
 
     #[Route('/api/uploads/{id}/upload-url', methods: ['POST'])]
     public function getUploadUrl(
-        Upload $upload,
+        #[MapEntity(id: 'id')] Upload $upload,
         S3 $s3
     ): JsonResponse {
         $url = $s3->createPutPresignUrl($upload->getS3Key(), $upload->getMimeType());
