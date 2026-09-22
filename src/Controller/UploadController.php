@@ -11,6 +11,7 @@ use App\Entity\Upload;
 use App\Enum\StatusEnum;
 use App\Repository\TaskRepository;
 use App\Repository\UploadRepository;
+use App\Service\S3;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -24,6 +25,8 @@ class UploadController extends AbstractController
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
+        private readonly S3 $s3,
+
     ) {}
 
     #[Route('/api/tasks/{taskId}/uploads', methods: ['GET'])]
@@ -69,6 +72,8 @@ class UploadController extends AbstractController
     #[Route('/api/tasks/{taskId}/uploads/{id}', methods: ['DELETE'])]
     public function delete(Upload $upload): JsonResponse
     {
+        $upload->setStatus(StatusEnum::DELETED);
+        $this->s3->removeUpload($upload);
         $this->em->remove($upload);
         $this->em->flush();
 
@@ -122,6 +127,7 @@ class UploadController extends AbstractController
                     $isDeleted = $changeRow->newDocumentState->deleted;
 
                     if ($isDeleted) {
+                        $this->s3->removeUpload($realMasterState);
                         $this->em->remove($realMasterState);
                         continue;
                     }

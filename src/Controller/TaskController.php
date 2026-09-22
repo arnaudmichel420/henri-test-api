@@ -13,6 +13,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use App\Dto\Task\DocumentStateDto;
 use App\Dto\Task\PullDto;
 use App\Dto\Task\PushDto;
+use App\Service\S3;
 use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\Uid\Uuid;
 
@@ -22,6 +23,7 @@ class TaskController extends AbstractController
     public function __construct(
         private readonly TaskRepository $taskRepository,
         private readonly EntityManagerInterface $em,
+        private readonly S3 $s3
     ) {}
 
     #[Route('/pull', methods: ['GET'])]
@@ -70,6 +72,11 @@ class TaskController extends AbstractController
                     $isDeleted = $changeRow->newDocumentState->deleted;
 
                     if ($isDeleted) {
+                        $uploads = $realMasterState->getUploads();
+
+                        if ($uploads) {
+                            $this->s3->removeUploads($uploads);
+                        }
                         $this->em->remove($realMasterState);
                         continue;
                     }
@@ -85,7 +92,7 @@ class TaskController extends AbstractController
     #[Route('', methods: ['GET'])]
     public function list(): JsonResponse
     {
-        return $this->json($this->taskRepository->findAll());
+        return $this->json($this->taskRepository->findAll(), 200, [], ['groups' => ['pull']]);
     }
 
     #[Route('/{id}', methods: ['GET'])]
@@ -118,6 +125,11 @@ class TaskController extends AbstractController
     #[Route('/{id}', methods: ['DELETE'])]
     public function delete(Task $task): JsonResponse
     {
+        $uploads = $task->getUploads();
+        if ($uploads) {
+            $this->s3->removeUploads($uploads);
+        }
+
         $this->em->remove($task);
         $this->em->flush();
 

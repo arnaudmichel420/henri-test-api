@@ -4,6 +4,8 @@ namespace App\Service;
 
 use Aws\S3\S3Client;
 use DateTime;
+use App\Entity\Upload;
+use Doctrine\Common\Collections\Collection;
 
 final class S3
 {
@@ -57,5 +59,37 @@ final class S3
         $request = $s3client->createPresignedRequest($command, $expiration);
 
         return (string) $request->getUri();
+    }
+
+    /**
+     * @param Collection<int, Upload> $uploads
+     */
+    public function removeUploads(Collection $uploads): void
+    {
+        $keys = $uploads->map(fn(Upload $upload) => $upload->getS3Key())->toArray();
+
+        if (empty($keys)) {
+            return;
+        }
+
+        $s3client = $this->createS3Client();
+        $s3client->deleteObjects([
+            'Bucket' => $this->bucket,
+            'Delete' => [
+                'Objects' => array_map(
+                    fn(string $key) => ['Key' => $key],
+                    $keys
+                ),
+            ],
+        ]);
+    }
+
+    public function removeUpload(Upload $upload): void
+    {
+        $s3client = $this->createS3Client();
+        $s3client->deleteObject([
+            'Bucket' => $this->bucket,
+            'Key'    => $upload->getS3Key(),
+        ]);
     }
 }
