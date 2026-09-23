@@ -4,6 +4,7 @@ namespace App\Repository;
 
 use App\Dto\Upload\PullDto;
 use App\Entity\Upload;
+use App\Enum\StatusEnum;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -40,6 +41,20 @@ class UploadRepository extends ServiceEntityRepository
             ->addOrderBy('u.updatedAt', 'ASC')
             ->addOrderBy('u.id', 'ASC')
             ->setMaxResults($dto->limit)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * @return Upload[]
+     */
+    public function getOldPendingUploads(): array
+    {
+        return $this->createQueryBuilder('u')
+            ->andWhere('u.status = :status')
+            ->andWhere('u.updatedAt < :weekOldDate')
+            ->setParameter('status', StatusEnum::PENDING)
+            ->setParameter('weekOldDate', (new \DateTimeImmutable('now'))->modify('-7 days'))
             ->getQuery()
             ->getResult();
     }

@@ -12,6 +12,11 @@ Le message de l'utilisateur indique explicitement le mode attendu :
   le concept. Donne des extraits de code en exemple si utile, mais ne les
   applique pas au projet sans qu'on te le demande.
 
+- **"boilerplate"** → exemple générique, hors contexte du projet.
+  Ne pas réutiliser le nom de la fonction/classe/fichier concerné, ni son
+  contenu existant. L'exemple doit être autonome (signature générique, nom
+  neutre), pas une proposition de correction pour le code actuel.
+
 - **"fait", "fixe", "corrige", "ajoute", "implémente"** → mode action.
   Applique directement le changement dans le code (Edit/Write), sans
   ré-expliquer en détail sauf si demandé. Reste bref sur le résumé final.

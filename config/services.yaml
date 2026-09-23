@@ -29,3 +29,7 @@ services:
             $accessKey: "%env(S3_ACCESS_KEY)%"
             $secretKey: "%env(S3_SECRET_KEY)%"
             $bucket: "%env(S3_BUCKET)%"
+    
+    App\Schedule\ScheduleUploads:
+        arguments:
+            $checkOldPending: "%env(CHECK_OLD_PENDING_CRON)%"

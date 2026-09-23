@@ -21,3 +21,4 @@
 cert.p12
 key.pem
 mercure-root-ca.crt
+/src/Controller/DebugController.php

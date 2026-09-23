@@ -5,6 +5,8 @@ namespace App\Service;
 use Aws\S3\S3Client;
 use DateTime;
 use App\Entity\Upload;
+use Aws\Result;
+use Aws\S3\Exception\S3Exception;
 use Doctrine\Common\Collections\Collection;
 
 final class S3
@@ -91,5 +93,29 @@ final class S3
             'Bucket' => $this->bucket,
             'Key'    => $upload->getS3Key(),
         ]);
+    }
+
+    /**
+     * @param string[] $keys
+     * @return array<string, Result> clé => existe
+     */
+    function findFilesByKeys(string $bucket, array $keys): array
+    {
+        $s3client = $this->createS3Client();
+        $found = [];
+
+        foreach ($keys as $key) {
+            try {
+                $response = $s3client->headObject(['Bucket' => $bucket, 'Key' => $key]);
+                $found[$key] = $response;
+            } catch (S3Exception $e) {
+                if ($e->getStatusCode() !== 404) {
+                    throw $e;
+                }
+                $found[$key] = false;
+            }
+        }
+
+        return $found;
     }
 }
