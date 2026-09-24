@@ -2,21 +2,21 @@
 
 namespace App\MessageHandler;
 
-use App\Message\CheckOldPendingMessage;
+use App\Message\DeleteS3OrphanMessage;
 use App\Service\UploadService;
 use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
-class CheckOldPendingMessageHandler
+class DeleteS3OrphanMessageHandler
 {
     public function __construct(private LockFactory $lockFactory, private UploadService $uploadService) {}
 
-    public function __invoke(CheckOldPendingMessage $message): void
+    public function __invoke(DeleteS3OrphanMessage $message): void
     {
         //lock global métier
         $lock = $this->lockFactory->createLock(
-            'check_old_pending',
+            'delete_s3_orphan',
             600 // TTL en secondes
         );
 
@@ -26,7 +26,7 @@ class CheckOldPendingMessageHandler
         }
 
         try {
-            $this->uploadService->checkIfFilesWereUploaded();
+            $this->uploadService->deleteS3Orphan();
         } finally {
             $lock->release();
         }

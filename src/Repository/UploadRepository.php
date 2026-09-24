@@ -58,4 +58,12 @@ class UploadRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    public function getAllS3key()
+    {
+        return array_flip($this->createQueryBuilder('u')
+            ->select('u.s3Key')
+            ->getQuery()
+            ->getSingleColumnResult());
+    }
 }

@@ -6,6 +6,7 @@ use Aws\S3\S3Client;
 use DateTime;
 use App\Entity\Upload;
 use Aws\Result;
+use Aws\ResultPaginator;
 use Aws\S3\Exception\S3Exception;
 use Doctrine\Common\Collections\Collection;
 
@@ -95,6 +96,20 @@ final class S3
         ]);
     }
 
+    public function removeFileByKey(array $keys): void
+    {
+        $s3client = $this->createS3Client();
+        $s3client->deleteObjects([
+            'Bucket' => $this->bucket,
+            'Delete' => [
+                'Objects' => array_map(
+                    fn(string $key) => ['Key' => $key],
+                    $keys
+                ),
+            ],
+        ]);
+    }
+
     /**
      * @param string[] $keys
      * @return array<string, Result> clé => existe
@@ -117,5 +132,22 @@ final class S3
         }
 
         return $found;
+    }
+
+    public function getAllS3KeyWithDateInBucket(): array
+    {
+        $s3client = $this->createS3Client();
+        $paginator = $s3client->getPaginator('ListObjectsV2', [
+            'Bucket' => $this->bucket,
+        ]);
+
+        $result = [];
+        foreach ($paginator as $page) {
+            foreach ($page['Contents'] ?? [] as $object) {
+                $result[$object['Key']] = $object['LastModified'];
+            }
+        }
+
+        return $result;
     }
 }

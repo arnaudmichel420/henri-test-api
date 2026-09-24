@@ -3,6 +3,7 @@
 namespace App\Schedule;
 
 use App\Message\CheckOldPendingMessage;
+use App\Message\DeleteS3OrphanMessage;
 use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Scheduler\Attribute\AsSchedule;
 use Symfony\Component\Scheduler\RecurringMessage;
@@ -17,6 +18,7 @@ class ScheduleUploads implements ScheduleProviderInterface
         private CacheInterface $cache,
         private readonly LockFactory $lockFactory,
         private string $checkOldPending,
+        private string $deleteS3Orphan,
     ) {}
 
     public function getSchedule(): SymfonySchedule
@@ -26,6 +28,9 @@ class ScheduleUploads implements ScheduleProviderInterface
             ->processOnlyLastMissedRun(true) // ensure only last missed task is run
             ->add(
                 RecurringMessage::cron($this->checkOldPending, new CheckOldPendingMessage())
+            )
+            ->add(
+                RecurringMessage::cron($this->deleteS3Orphan, new DeleteS3OrphanMessage())
             )
             ->lock($this->lockFactory->createLock('scheduler-file'));
     }

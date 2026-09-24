@@ -43,4 +43,28 @@ class UploadService
 
         $this->em->flush();
     }
+
+    public function deleteS3Orphan(): void
+    {
+        $s3Content = $this->s3->getAllS3KeyWithDateInBucket();
+
+        $uploads = $this->uploadRepository->getAllS3key();
+
+        $toDelete = [];
+        $weekOldDate = (new \DateTimeImmutable('now'))->modify('-7 days');
+
+        foreach ($s3Content as $s3Key => $date) {
+            if (isset($uploads[$s3Key])) {
+                continue;
+            }
+
+            if ($date > $weekOldDate) {
+                continue;
+            }
+
+            $toDelete[] = $s3Key;
+        }
+
+        $this->s3->removeFileByKey($toDelete);
+    }
 }
