@@ -1,44 +1,59 @@
 services:
-  # ###> doctrine/doctrine-bundle ###
-  #   database:
-  #     image: postgres:${POSTGRES_VERSION:-16}-alpine
-  #     environment:
-  #       POSTGRES_DB: ${POSTGRES_DB:-app}
-  #       # You should definitely change the password in production
-  #       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-!ChangeMe!}
-  #       POSTGRES_USER: ${POSTGRES_USER:-app}
-  #     healthcheck:
-  #       test: ["CMD", "pg_isready", "-d", "${POSTGRES_DB:-app}", "-U", "${POSTGRES_USER:-app}"]
-  #       timeout: 5s
-  #       retries: 5
-  #       start_period: 60s
-  #     volumes:
-  #       - database_data:/var/lib/postgresql/data:rw
-  #       # You may use a bind-mounted host directory instead, so that it is harder to accidentally remove the volume and lose all your data!
-  #       # - ./docker/db/data:/var/lib/postgresql/data:rw
-  # ###< doctrine/doctrine-bundle ###
+  api:
+    build: .
+    restart: unless-stopped
+    environment:
+      APP_ENV: prod
+      APP_SECRET: ${APP_SECRET}
+      DATABASE_URL: "mysql://${MARIADB_USER:-app}:${MARIADB_PASSWORD:-!ChangeMe!}@mariadb:3306/${MARIADB_DATABASE:-app}?serverVersion=11.4.0-MariaDB&charset=utf8mb4"
+      # Interne au réseau Docker, en clair : seul Coolify expose du HTTPS au public.
+      MERCURE_URL: http://mercure_hub/.well-known/mercure
+      MERCURE_PUBLIC_URL: ${MERCURE_PUBLIC_URL}
+      MERCURE_JWT_SECRET: ${MERCURE_JWT_SECRET}
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    expose:
+      - "80"
+
+  ###> doctrine/doctrine-bundle ###
+  mariadb:
+    image: mariadb:11.4
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-app}
+      MARIADB_USER: ${MARIADB_USER:-app}
+      # You should definitely change the password in production
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-!ChangeMe!}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-!ChangeMe!}
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    volumes:
+      - database_data:/var/lib/mysql:rw
+  ###< doctrine/doctrine-bundle ###
 
   ###> symfony/mercure-bundle ###
   mercure_hub:
     image: dunglas/mercure
     restart: unless-stopped
     environment:
-      GODEBUG: "tlsmlkem=0"
-      GLOBAL_OPTIONS: "default_sni 192.168.1.16"
-      # Uncomment the following line to disable HTTPS,
-      SERVER_NAME: "localhost, 192.168.1.16"
+      # :80 = HTTP simple, pas d'HTTPS géré par Caddy : Coolify s'occupe du certif public.
+      SERVER_NAME: ":80"
       MERCURE_PUBLISHER_JWT_KEY: "${MERCURE_JWT_SECRET}"
       MERCURE_SUBSCRIBER_JWT_KEY: "${MERCURE_JWT_SECRET}"
-      # Set the URL of your Symfony project (without trailing slash!) as value of the cors_origins directive
+      # Mettre ici le domaine public du front (CORS)
       MERCURE_EXTRA_DIRECTIVES: |
-        cors_origins http://localhost:8100 http://127.0.0.1:8100 https://192.168.1.16:8100 https://192.168.1.16:5050
-    # Comment the following line to disable the development mode
-    command: /usr/bin/caddy run --config /etc/caddy/dev.Caddyfile
+        cors_origins ${CORS_ALLOW_ORIGIN}
     healthcheck:
-      test: ["CMD", "curl", "-f", "https://localhost/healthz"]
+      test: ["CMD", "curl", "-f", "http://localhost/healthz"]
       timeout: 5s
       retries: 5
       start_period: 60s
+    expose:
+      - "80"
     volumes:
       - mercure_data:/data
       - mercure_config:/config
