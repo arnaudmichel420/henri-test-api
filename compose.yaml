@@ -37,7 +37,7 @@ services:
 
   ###> symfony/mercure-bundle ###
   mercure_hub:
-    image: dunglas/mercure
+    image: dunglas/mercure:v2.11.3
     restart: unless-stopped
     environment:
       # :80 = HTTP simple, pas d'HTTPS géré par Caddy : Coolify s'occupe du certif public.
