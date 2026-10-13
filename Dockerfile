@@ -25,3 +25,4 @@ ENV APP_ENV=prod
 ENV SERVER_NAME=:80
 
 ENTRYPOINT ["entrypoint.sh"]
+CMD ["frankenphp", "run", "--config", "/etc/frankenphp/Caddyfile"]
