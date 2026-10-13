@@ -47,6 +47,7 @@ services:
       # Liste d'origines littérales séparées par des espaces (pas une regex, contrairement à CORS_ALLOW_ORIGIN)
       MERCURE_EXTRA_DIRECTIVES: |
         cors_origins ${CORS_ALLOW_ORIGIN_MERCURE}
+        anonymous
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/healthz"]
       timeout: 5s
