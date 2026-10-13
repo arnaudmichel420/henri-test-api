@@ -33,7 +33,15 @@ class Task implements HasIdAndUpdatedAt
 
     #[ORM\Column(nullable: true)]
     #[Groups(['pull'])]
-    private ?\DateTimeImmutable $date = null;
+    private ?\DateTimeImmutable $scheduledAt = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Groups(['pull'])]
+    private ?\DateTimeImmutable $doneAt = null;
+
+    #[ORM\Column]
+    #[Groups(['pull'])]
+    private bool $done = false;
 
     /**
      * @var Collection<int, Upload>
@@ -71,14 +79,38 @@ class Task implements HasIdAndUpdatedAt
         return $this;
     }
 
-    public function getDate(): ?\DateTimeImmutable
+    public function getScheduledAt(): ?\DateTimeImmutable
     {
-        return $this->date;
+        return $this->scheduledAt;
     }
 
-    public function setDate(?\DateTimeImmutable $date): static
+    public function setScheduledAt(?\DateTimeImmutable $scheduledAt): static
     {
-        $this->date = $date;
+        $this->scheduledAt = $scheduledAt;
+
+        return $this;
+    }
+
+    public function getDoneAt(): ?\DateTimeImmutable
+    {
+        return $this->doneAt;
+    }
+
+    public function setDoneAt(?\DateTimeImmutable $doneAt): static
+    {
+        $this->doneAt = $doneAt;
+
+        return $this;
+    }
+
+    public function isDone(): bool
+    {
+        return $this->done;
+    }
+
+    public function setDone(bool $done): static
+    {
+        $this->done = $done;
 
         return $this;
     }

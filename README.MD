@@ -21,7 +21,7 @@ mkcert -pkcs12 -p12-file cert.p12 localhost 127.0.0.1 <nouvelle-ip>
 n'a pas d'option pour le lui fournir et attend un p12 sans mot de passe.
 Re-exporter sans passphrase :
 ```bash
-openssl pkcs12 -in cert.p12 -out /tmp/cert-temp.pem -nodes -passin pass:changeit
+openssl pkcs12 -in cert.p12 -out /tmp/cert-temp.pem -nodes -passin pass:changeit -legacy
 openssl pkcs12 -export -in /tmp/cert-temp.pem -out cert.p12 -passout pass:
 rm /tmp/cert-temp.pem
 ```

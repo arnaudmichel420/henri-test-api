@@ -10,7 +10,11 @@ final class TaskDto
     #[Assert\Length(max: 255)]
     public ?string $name = null;
 
-    public ?\DateTimeImmutable $date = null;
+    public ?\DateTimeImmutable $scheduledAt = null;
+
+    public ?\DateTimeImmutable $doneAt = null;
+
+    public bool $done = false;
 
     #[Assert\Length(max: 255)]
     public ?string $image = null;

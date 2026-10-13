@@ -13,7 +13,9 @@ final class DocumentStateDto
         #[Assert\NotBlank]
         #[Assert\Length(max: 255)]
         public readonly string $name,
-        public readonly ?\DateTimeImmutable $date = null,
+        public readonly ?\DateTimeImmutable $scheduledAt = null,
+        public readonly ?\DateTimeImmutable $doneAt = null,
+        public readonly bool $done = false,
         #[Assert\Length(max: 255)]
         public readonly ?string $image = null,
         public readonly bool $deleted = false,

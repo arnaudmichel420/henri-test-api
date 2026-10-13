@@ -81,7 +81,13 @@ class TaskController extends AbstractController
                         continue;
                     }
 
-                    $this->updateTask($realMasterState, $changeRow->newDocumentState->name, $changeRow->newDocumentState->date);
+                    $this->updateTask(
+                        $realMasterState,
+                        $changeRow->newDocumentState->name,
+                        $changeRow->newDocumentState->scheduledAt,
+                        $changeRow->newDocumentState->doneAt,
+                        $changeRow->newDocumentState->done,
+                    );
                 }
             }
         });
@@ -105,7 +111,7 @@ class TaskController extends AbstractController
     public function create(#[MapRequestPayload] TaskDto $input): JsonResponse
     {
         $task = new Task();
-        $this->updateTask($task, $input->name, $input->date);
+        $this->updateTask($task, $input->name, $input->scheduledAt, $input->doneAt, $input->done);
 
         $this->em->persist($task);
         $this->em->flush();
@@ -116,7 +122,7 @@ class TaskController extends AbstractController
     #[Route('/{id}', methods: ['PUT'])]
     public function update(Task $task, #[MapRequestPayload] TaskDto $input): JsonResponse
     {
-        $this->updateTask($task, $input->name, $input->date);
+        $this->updateTask($task, $input->name, $input->scheduledAt, $input->doneAt, $input->done);
         $this->em->flush();
 
         return $this->json($task);
@@ -142,22 +148,26 @@ class TaskController extends AbstractController
 
         $task = new Task();
         $task->setId($documentState->id);
-        $this->updateTask($task, $documentState->name, $documentState->date);
+        $this->updateTask($task, $documentState->name, $documentState->scheduledAt, $documentState->doneAt, $documentState->done);
 
         $this->em->persist($task);
     }
 
-    private function updateTask(Task $task, string $name, ?\DateTimeImmutable $date): void
+    private function updateTask(Task $task, string $name, ?\DateTimeImmutable $scheduledAt, ?\DateTimeImmutable $doneAt, bool $done): void
     {
         $task->setName($name);
-        $task->setDate($date);
+        $task->setScheduledAt($scheduledAt);
+        $task->setDoneAt($doneAt);
+        $task->setDone($done);
     }
 
     private function checkConflict(?DocumentStateDto $distantState, Task $localState): bool
     {
         if (!$distantState->id->equals($localState->getId())) return true;
         if ($distantState->name !== $localState->getName()) return true;
-        if ($distantState->date?->getTimestamp() !== $localState->getDate()?->getTimestamp()) return true;
+        if ($distantState->scheduledAt?->getTimestamp() !== $localState->getScheduledAt()?->getTimestamp()) return true;
+        if ($distantState->doneAt?->getTimestamp() !== $localState->getDoneAt()?->getTimestamp()) return true;
+        if ($distantState->done !== $localState->isDone()) return true;
         if ($distantState->deleted !== $localState->isDeleted()) return true;
 
         return false;
