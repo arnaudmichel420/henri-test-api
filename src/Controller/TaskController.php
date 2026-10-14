@@ -13,6 +13,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use App\Dto\Task\DocumentStateDto;
 use App\Dto\Task\PullDto;
 use App\Dto\Task\PushDto;
+use App\Dto\Task\TaskListDto;
 use App\Service\S3;
 use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\Uid\Uuid;
@@ -96,15 +97,23 @@ class TaskController extends AbstractController
     }
 
     #[Route('', methods: ['GET'])]
-    public function list(): JsonResponse
+    public function list(#[MapQueryString] TaskListDto $input): JsonResponse
     {
-        return $this->json($this->taskRepository->findAll(), 200, [], ['groups' => ['pull']]);
+        $paginator = $this->taskRepository->findByState($input->state, $input->page, $input->perPage);
+
+        return $this->json([
+            'items' => iterator_to_array($paginator),
+            'page' => $input->page,
+            'perPage' => $input->perPage,
+            'total' => count($paginator),
+            'counts' => $this->taskRepository->countByState(),
+        ], 200, [], ['groups' => ['pull']]);
     }
 
     #[Route('/{id}', methods: ['GET'])]
     public function show(Task $task): JsonResponse
     {
-        return $this->json($task);
+        return $this->json($task, 200, [], ['groups' => ['pull']]);
     }
 
     #[Route('', methods: ['POST'])]
@@ -116,7 +125,7 @@ class TaskController extends AbstractController
         $this->em->persist($task);
         $this->em->flush();
 
-        return $this->json($task, 201);
+        return $this->json($task, 201, [], ['groups' => ['pull']]);
     }
 
     #[Route('/{id}', methods: ['PUT'])]
@@ -125,7 +134,7 @@ class TaskController extends AbstractController
         $this->updateTask($task, $input->name, $input->scheduledAt, $input->doneAt, $input->done);
         $this->em->flush();
 
-        return $this->json($task);
+        return $this->json($task, 200, [], ['groups' => ['pull']]);
     }
 
     #[Route('/{id}', methods: ['DELETE'])]

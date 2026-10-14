@@ -87,6 +87,18 @@ final class S3
         ]);
     }
 
+    public function putObject(string $key, string $filePath, string $mimeType): Result
+    {
+        $s3client = $this->createS3Client();
+
+        return $s3client->putObject([
+            'Bucket' => $this->bucket,
+            'Key' => $key,
+            'SourceFile' => $filePath,
+            'ContentType' => $mimeType,
+        ]);
+    }
+
     public function removeUpload(Upload $upload): void
     {
         $s3client = $this->createS3Client();
