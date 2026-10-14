@@ -7,6 +7,7 @@ use App\Entity\Upload;
 use App\Enum\StatusEnum;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Symfony\Bridge\Doctrine\Types\UuidType;
 
 /**
  * @extends ServiceEntityRepository<Upload>
@@ -37,7 +38,7 @@ class UploadRepository extends ServiceEntityRepository
             )
         )
             ->setParameter('updatedAt', $dto->updatedAt)
-            ->setParameter('id', $dto->id)
+            ->setParameter('id', $dto->id, UuidType::NAME)
             ->addOrderBy('u.updatedAt', 'ASC')
             ->addOrderBy('u.id', 'ASC')
             ->setMaxResults($dto->limit)

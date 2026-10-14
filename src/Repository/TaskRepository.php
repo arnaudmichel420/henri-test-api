@@ -8,6 +8,7 @@ use App\Enum\TaskStateEnum;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\Tools\Pagination\Paginator;
 use Doctrine\Persistence\ManagerRegistry;
+use Symfony\Bridge\Doctrine\Types\UuidType;
 
 /**
  * @extends ServiceEntityRepository<Task>
@@ -38,7 +39,7 @@ class TaskRepository extends ServiceEntityRepository
             )
         )
             ->setParameter('updatedAt', $dto->updatedAt)
-            ->setParameter('id', $dto->id)
+            ->setParameter('id', $dto->id, UuidType::NAME)
             ->addOrderBy('t.updatedAt', 'ASC')
             ->addOrderBy('t.id', 'ASC')
             ->setMaxResults($dto->limit)
